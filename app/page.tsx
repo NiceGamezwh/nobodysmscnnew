@@ -124,7 +124,7 @@ export default function LoginPage() {
           </Card>
 
           <p className="text-center text-xs text-muted-foreground">
-            请直接使用购买的卡密账户登陆
+            请前往注册页注册
           </p>
 
           <p className="text-center text-xs">
@@ -134,7 +134,7 @@ export default function LoginPage() {
               rel="noopener noreferrer"
               className="text-primary hover:underline font-medium"
             >
-              立即购买
+              立即注册
             </a>
           </p>
 
