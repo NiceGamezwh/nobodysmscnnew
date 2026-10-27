@@ -1,0 +1,12 @@
+{
+    "deployTx":  "0x68bdc60e1acb4a4b84f34158c475576ad79669c7dc840b8e296400a4bc8422d6",
+    "contractAddress":  "0x668abf17783ADb0F26cdD9049736C6954a6378CF",
+    "network":  "sepolia",
+    "chainId":  11155111,
+    "seededAccounts":  [
+                           "a17263900020",
+                           "4d1a21dca89d9ed093975bdf66a4788288fe973c812a00c5207b7f668a3dcfdb"
+                       ],
+    "seedTx":  "0xbbbf0fac81aa0dd154ca31a7b6697429518d8218a2bcfe5e86245ea66fbeebe4",
+    "deployer":  "0xEfce7092589CA8Bcb2BdF412Fd2bD2d0Af30C764"
+}
