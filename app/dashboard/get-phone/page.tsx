@@ -28,7 +28,7 @@ export default function GetPhonePage() {
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchResults, setSearchResults] = useState<SearchProject[]>([])
   const [selectedProject, setSelectedProject] = useState<SearchProject | null>(null)
-  const [isp, setIsp] = useState("1")  // 默认中国移动；API 无「不限」运营商
+  const [isp, setIsp] = useState("")  // 默认不限运营商（省略 isp 参数）
   const [ascription, setAscription] = useState("")
   const [paragraph, setParagraph] = useState("")
   const [exclude, setExclude] = useState("")
@@ -118,13 +118,8 @@ export default function GetPhonePage() {
     stopAutoRefresh()
 
     try {
-      if (!isp) {
-        toast.error("请选择运营商")
-        setLoading(false)
-        return
-      }
       const res = await getPhone(token, sid, {
-        isp,
+        isp: isp && isp !== "all" ? isp : undefined,
         ascription: ascription && ascription !== "all" ? ascription : undefined,
         paragraph: paragraph || undefined,
         exclude: exclude || undefined,
@@ -385,13 +380,13 @@ export default function GetPhonePage() {
 
       {/* 运营商和类型选择 */}
       <div className="grid grid-cols-2 gap-3">
-        <Select value={isp} onValueChange={setIsp}>
+        <Select value={isp || "all"} onValueChange={(v) => setIsp(v === "all" ? "" : v)}>
           <SelectTrigger className="bg-card border-border h-12 text-primary">
-            <SelectValue placeholder="选择运营商" />
+            <SelectValue placeholder="不限运营商" />
           </SelectTrigger>
           <SelectContent>
             {ISP_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
+              <SelectItem key={opt.value || "all"} value={opt.value || "all"}>
                 {opt.label}
               </SelectItem>
             ))}
