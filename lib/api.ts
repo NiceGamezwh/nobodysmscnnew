@@ -40,11 +40,24 @@ export interface ReleaseResponse {
   msg: string
 }
 
+const LOGIN_FAIL_MSG = "登录失败，请使用购买的卡密登录"
+
+/** 屏蔽上游官方文案（如请登录 h5.haozhuma.cn 提取 API），统一成卡密提示 */
+function sanitizeLoginMsg(msg: unknown): string {
+  const s = typeof msg === "string" ? msg : ""
+  if (!s || /haozhuma|请登录网页版|提取\s*API/i.test(s)) return LOGIN_FAIL_MSG
+  return s
+}
+
 export async function login(user: string, pass: string): Promise<LoginResponse> {
   const res = await fetch(
     `${API_BASE}/sms/?api=login&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`,
   )
-  return res.json()
+  const data = (await res.json()) as LoginResponse
+  if (data.code !== 0) {
+    data.msg = sanitizeLoginMsg(data.msg)
+  }
+  return data
 }
 
 export async function getAccountInfo(token: string): Promise<AccountInfo> {

@@ -35,7 +35,7 @@ export default function LoginPage() {
         toast.success("登录成功")
         router.push("/dashboard")
       } else {
-        toast.error(res.msg || "登录失败")
+        toast.error(res.msg || "登录失败，请使用购买的卡密登录")
       }
     } catch {
       toast.error("网络错误，请稍后重试")
