@@ -148,7 +148,7 @@ export default function RechargePage() {
             购买充值卡密
           </CardTitle>
           <CardDescription>
-            请前往商城在线购买 15 / 30 / 60 元充值卡密
+            请前往商城在线购买 15 / 30 / 150 元充值卡密
           </CardDescription>
         </CardHeader>
         <CardContent>
