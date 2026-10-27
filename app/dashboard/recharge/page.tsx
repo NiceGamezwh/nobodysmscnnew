@@ -135,7 +135,7 @@ export default function RechargePage() {
         <div>
           <p className="font-medium text-primary">充值说明</p>
           <p className="text-sm text-muted-foreground">
-            卡密兑换一般即时到账；没有卡密可先在商城购买，付款后即时获得充值卡密，再回到本页兑换。
+            卡密兑换立即到账；没有卡密请前去卡密商城购买，付款后即时获得充值卡密，再回到本页兑换。
           </p>
         </div>
       </div>
@@ -148,7 +148,7 @@ export default function RechargePage() {
             购买充值卡密
           </CardTitle>
           <CardDescription>
-            原支付宝档位充值已停用，请前往商城在线购买 15 / 30 / 60 元充值卡密
+            请前往商城在线购买 15 / 30 / 60 元充值卡密
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -159,10 +159,9 @@ export default function RechargePage() {
             className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
           >
             <ShoppingCart className="h-4 w-4" />
-            前往充值商城
+            立即购买
             <ExternalLink className="h-4 w-4" />
           </a>
-          <p className="mt-3 text-xs text-muted-foreground break-all">{RECHARGE_STORE_URL}</p>
         </CardContent>
       </Card>
     </div>
