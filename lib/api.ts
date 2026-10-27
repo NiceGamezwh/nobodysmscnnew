@@ -188,7 +188,7 @@ export async function dockProject(sid: string): Promise<DockResponse> {
 }
 
 // ============================================================================
-// 对接管理：优先用登录 api账号 走链上 Bearer；可选粘贴 token 覆盖
+// 对接管理：仅用登录 api账号 的链上 Bearer（不回退配置 VEETO_BEARER）；可选粘贴 token 覆盖
 // ============================================================================
 
 export interface JoinDockResponse {

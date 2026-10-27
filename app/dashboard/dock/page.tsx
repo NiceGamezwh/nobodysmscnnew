@@ -154,10 +154,10 @@ export default function DockPage() {
       if (res.success) {
         toast.success(res.msg || "对接成功")
       } else {
-        toast.error(res.msg || "对接失败")
+        toast.error(res.msg || "对接失败，请联系客服")
       }
     } catch {
-      toast.error("对接失败，请稍后再试")
+      toast.error("对接失败，请联系客服")
     } finally {
       setJoiningUid(null)
     }

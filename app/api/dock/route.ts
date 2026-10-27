@@ -1,10 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { resolveVeetoBearer, triplePrice, veetoFetch } from "@/lib/veeto"
+import {
+  DOCK_BEARER_FAIL_MSG,
+  isVeetoAuthFailure,
+  resolveVeetoBearer,
+  triplePrice,
+  veetoFetch,
+} from "@/lib/veeto"
 
 /**
  * 搜索公开对接码列表
  * GET /api/dock?sid=<十六进制sid>
  * 可选 token / x-veeto-token；account / x-sms-user → 链上查找
+ * 用户对接：仅用链上/请求 Bearer，禁止回退 VEETO_BEARER
  */
 type VeetoPublicCode = {
   code?: string
@@ -35,30 +42,24 @@ export async function GET(request: NextRequest) {
     fromRequest:
       request.nextUrl.searchParams.get("token") || request.headers.get("x-veeto-token"),
     account,
+    allowEnvFallback: false,
   })
   if (!bearer) {
-    return NextResponse.json(
-      {
-        success: false,
-        msg: "缺少 Veeto Bearer：请登录后由链上映射提供，或配置 VEETO_BEARER / 传 token",
-      },
-      { status: 401 },
-    )
+    return NextResponse.json({ success: false, msg: DOCK_BEARER_FAIL_MSG }, { status: 401 })
   }
 
   try {
-    const { ok, json } = await veetoFetch(
+    const { ok, status, json } = await veetoFetch(
       `/projects/${encodeURIComponent(sid)}/public-codes`,
       bearer,
     )
 
     if (!ok) {
+      if (isVeetoAuthFailure(json, status)) {
+        return NextResponse.json({ success: false, msg: DOCK_BEARER_FAIL_MSG })
+      }
       const msg = json.message || json.msg || "加载对接码失败"
-      const hint =
-        json.code === 401 || json.message === "Unauthorized"
-          ? "（Bearer 无效或已过期）"
-          : ""
-      return NextResponse.json({ success: false, msg: `${msg}${hint}` })
+      return NextResponse.json({ success: false, msg })
     }
 
     const list = Array.isArray(json.data) ? (json.data as VeetoPublicCode[]) : []

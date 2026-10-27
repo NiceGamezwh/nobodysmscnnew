@@ -6,18 +6,28 @@ import { getBearerFromChain } from "./veeto-bearer-chain"
 
 export const VEETO_BASE = "https://api.veeto.cn/v1"
 
+/** 用户对接链路统一失败文案（无链上 Bearer / Bearer 无效过期） */
+export const DOCK_BEARER_FAIL_MSG = "对接失败，请联系客服"
+
 export type ResolveVeetoBearerOptions = {
   /** Optional request override (query/body/header paste). */
   fromRequest?: string | null
   /** SMS api账号 (sessionStorage sms_user) for on-chain lookup. */
   account?: string | null
+  /**
+   * When false, never fall back to process.env.VEETO_BEARER.
+   * User-facing 对接 / 对接管理 must pass false so missing per-account
+   * Bearer cannot silently use the shared config token.
+   * Default true (e.g. admin/system helpers that still allow env).
+   */
+  allowEnvFallback?: boolean
 }
 
 /**
  * Resolve Veeto Bearer:
  * 1) request token override (if present)
  * 2) chain lookup by account (if account present)
- * 3) env VEETO_BEARER fallback
+ * 3) env VEETO_BEARER fallback (only when allowEnvFallback !== false)
  */
 export async function resolveVeetoBearer(
   fromRequestOrOpts?: string | null | ResolveVeetoBearerOptions,
@@ -25,10 +35,12 @@ export async function resolveVeetoBearer(
 ): Promise<string | null> {
   let fromRequest: string | null | undefined
   let account: string | null | undefined
+  let allowEnvFallback = true
 
   if (fromRequestOrOpts && typeof fromRequestOrOpts === "object") {
     fromRequest = fromRequestOrOpts.fromRequest
     account = fromRequestOrOpts.account
+    if (fromRequestOrOpts.allowEnvFallback === false) allowEnvFallback = false
   } else {
     fromRequest = fromRequestOrOpts as string | null | undefined
     account = accountMaybe
@@ -43,8 +55,17 @@ export async function resolveVeetoBearer(
     if (fromChain) return fromChain
   }
 
+  if (!allowEnvFallback) return null
+
   const fromEnv = (process.env.VEETO_BEARER || "").trim()
   return fromEnv || null
+}
+
+export function isVeetoAuthFailure(json: VeetoJson, status?: number): boolean {
+  if (status === 401) return true
+  if (json.code === 401) return true
+  const msg = `${json.message || ""} ${json.msg || ""}`.toLowerCase()
+  return msg.includes("unauthorized") || msg.includes("invalid token") || msg.includes("token expired")
 }
 
 export function veetoHeaders(bearer: string): HeadersInit {

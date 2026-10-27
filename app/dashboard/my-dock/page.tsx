@@ -44,7 +44,7 @@ export default function MyDockPage() {
 
     setListLoading(true)
     try {
-      // 空 token：服务端按 sms_user 走链上 Bearer / env
+      // 空 token：服务端按 sms_user 走链上 Bearer（不回退配置 Bearer）
       const res = await getMyDocks("", {
         keyword: (kw ?? keyword).trim(),
         page: 1,
@@ -58,7 +58,7 @@ export default function MyDockPage() {
         }
       } else {
         setItems([])
-        toast.error(res.msg || "获取列表失败")
+        toast.error(res.msg || "对接失败，请联系客服")
       }
     } catch {
       setItems([])

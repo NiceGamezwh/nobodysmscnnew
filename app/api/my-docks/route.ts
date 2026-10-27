@@ -1,9 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { resolveVeetoBearer, triplePrice, veetoFetch } from "@/lib/veeto"
+import {
+  DOCK_BEARER_FAIL_MSG,
+  isVeetoAuthFailure,
+  resolveVeetoBearer,
+  triplePrice,
+  veetoFetch,
+} from "@/lib/veeto"
 
 /**
  * 我的对接列表
  * POST { token|cookie|bearer?, account?, page?, keyword? }
+ * 用户对接管理：仅用链上/请求 Bearer，禁止回退 VEETO_BEARER
  */
 type VeetoBinding = {
   code?: string
@@ -42,24 +49,22 @@ export async function POST(request: NextRequest) {
   const bearer = await resolveVeetoBearer({
     fromRequest: body.token || body.bearer || body.cookie || request.headers.get("x-veeto-token"),
     account,
+    allowEnvFallback: false,
   })
 
   if (!bearer) {
-    return NextResponse.json(
-      {
-        success: false,
-        msg: "缺少 Veeto Bearer：请登录后由链上映射提供，或粘贴 Bearer / 配置 VEETO_BEARER",
-      },
-      { status: 400 },
-    )
+    return NextResponse.json({ success: false, msg: DOCK_BEARER_FAIL_MSG }, { status: 400 })
   }
 
   try {
-    const { ok, json } = await veetoFetch(`/bindings?page=${page}&size=50`, bearer)
+    const { ok, status, json } = await veetoFetch(`/bindings?page=${page}&size=50`, bearer)
     if (!ok) {
+      if (isVeetoAuthFailure(json, status)) {
+        return NextResponse.json({ success: false, msg: DOCK_BEARER_FAIL_MSG })
+      }
       return NextResponse.json({
         success: false,
-        msg: json.message || json.msg || "获取已对接列表失败，请检查 Bearer 是否有效",
+        msg: json.message || json.msg || DOCK_BEARER_FAIL_MSG,
       })
     }
 
