@@ -28,7 +28,7 @@ export default function GetPhonePage() {
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchResults, setSearchResults] = useState<SearchProject[]>([])
   const [selectedProject, setSelectedProject] = useState<SearchProject | null>(null)
-  const [isp, setIsp] = useState("")
+  const [isp, setIsp] = useState("1")  // 默认中国移动；API 无「不限」运营商
   const [ascription, setAscription] = useState("")
   const [paragraph, setParagraph] = useState("")
   const [exclude, setExclude] = useState("")
@@ -118,9 +118,14 @@ export default function GetPhonePage() {
     stopAutoRefresh()
 
     try {
+      if (!isp) {
+        toast.error("请选择运营商")
+        setLoading(false)
+        return
+      }
       const res = await getPhone(token, sid, {
-        isp: isp || undefined,
-        ascription: ascription || undefined,
+        isp,
+        ascription: ascription && ascription !== "all" ? ascription : undefined,
         paragraph: paragraph || undefined,
         exclude: exclude || undefined,
       })
@@ -236,6 +241,14 @@ export default function GetPhonePage() {
     }
   }, [autoRefresh, phoneResult?.phone, sid])
 
+  const isApiSuccess = (code: unknown, msg?: string) => {
+    const c = String(code ?? "")
+    if (c === "0" || c === "200") return true
+    // 部分接口成功时 code 非 0，但 msg 含成功字样
+    if (msg && /成功|已释放|取消成功|释放成功/.test(msg)) return true
+    return false
+  }
+
   // 释放号码
   const handleReleasePhone = async () => {
     if (!sid || !phoneResult?.phone) return
@@ -243,12 +256,16 @@ export default function GetPhonePage() {
     const token = sessionStorage.getItem("sms_token")
     if (!token) return
 
+    const releasedPhone = phoneResult.phone
     try {
-      const res = await releasePhone(token, sid, phoneResult.phone)
-      if (res.code === "0") {
-        toast.success("号码已释放")
+      const res = await releasePhone(token, sid, releasedPhone)
+      if (isApiSuccess(res.code, res.msg)) {
+        toast.success(res.msg && /成功|释放|取消/.test(res.msg) ? res.msg : "号码已释放")
+        // 成功后清空前端展示的号码，避免仍显示为占用中
         setPhoneResult(null)
         setCodeResult(null)
+        setPhoneCopied(false)
+        if (specifiedPhone === releasedPhone) setSpecifiedPhone("")
         stopAutoRefresh()
       } else {
         toast.error(res.msg || "释放失败")
@@ -265,12 +282,15 @@ export default function GetPhonePage() {
     const token = sessionStorage.getItem("sms_token")
     if (!token) return
 
+    const blackPhone = phoneResult.phone
     try {
-      const res = await addBlack(token, sid, phoneResult.phone)
-      if (res.code === "0") {
-        toast.success("号码已拉黑")
+      const res = await addBlack(token, sid, blackPhone)
+      if (isApiSuccess(res.code, res.msg)) {
+        toast.success(res.msg && /成功|拉黑/.test(res.msg) ? res.msg : "号码已拉黑")
         setPhoneResult(null)
         setCodeResult(null)
+        setPhoneCopied(false)
+        if (specifiedPhone === blackPhone) setSpecifiedPhone("")
         stopAutoRefresh()
       } else {
         toast.error(res.msg || "拉黑失败")
@@ -289,10 +309,11 @@ export default function GetPhonePage() {
 
     try {
       const res = await releaseAllPhones(token)
-      if (res.code === "0") {
-        toast.success("已释放全部号码")
+      if (isApiSuccess(res.code, res.msg)) {
+        toast.success(res.msg && /成功|释放|取消/.test(res.msg) ? res.msg : "已释放全部号码")
         setPhoneResult(null)
         setCodeResult(null)
+        setPhoneCopied(false)
         stopAutoRefresh()
       } else {
         toast.error(res.msg || "释放失败")
@@ -366,11 +387,11 @@ export default function GetPhonePage() {
       <div className="grid grid-cols-2 gap-3">
         <Select value={isp} onValueChange={setIsp}>
           <SelectTrigger className="bg-card border-border h-12 text-primary">
-            <SelectValue placeholder="不限运营商" />
+            <SelectValue placeholder="选择运营商" />
           </SelectTrigger>
           <SelectContent>
             {ISP_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value || "all"}>
+              <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>
             ))}

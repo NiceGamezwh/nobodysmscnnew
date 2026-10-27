@@ -315,7 +315,6 @@ export async function redeemCardKey(cardKey: string): Promise<RedeemCardKeyRespo
 }
 
 export const ISP_OPTIONS = [
-  { value: "", label: "不限" },
   { value: "1", label: "中国移动" },
   { value: "5", label: "中国联通" },
   { value: "9", label: "中国电信" },

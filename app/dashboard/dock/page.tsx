@@ -182,7 +182,7 @@ export default function DockPage() {
       <div>
         <h1 className="text-2xl font-bold text-primary">搜索对接</h1>
         <p className="text-muted-foreground text-sm">
-          搜索项目前缀 → 选择项目 → 点击确认加载 → 直接对接（使用登录 API 账号的链上 Bearer）
+          搜索项目前缀 → 选择项目 → 点击确认加载 → 点击对接
         </p>
       </div>
 
