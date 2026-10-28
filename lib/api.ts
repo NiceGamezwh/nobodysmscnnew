@@ -49,6 +49,26 @@ function sanitizeLoginMsg(msg: unknown): string {
   return s
 }
 
+/**
+ * 脱敏上游业务文案。价格/余额在本站按 3 倍展示，
+ * 不能把「当前余额 x 元、项目所需 y 元」这类豪猪原文透给用户。
+ */
+function sanitizeApiMsg(msg: unknown): string {
+  const s = typeof msg === "string" ? msg.trim() : ""
+  if (!s) return s
+  if (/余额不足|不足.*余额|余额.*不足|money\s*not\s*enough|insufficient/i.test(s)) {
+    return "余额不足"
+  }
+  return s
+}
+
+function withSanitizedMsg<T extends { msg?: string }>(data: T): T {
+  if (data && typeof data.msg === "string") {
+    data.msg = sanitizeApiMsg(data.msg)
+  }
+  return data
+}
+
 export async function login(user: string, pass: string): Promise<LoginResponse> {
   const res = await fetch(
     `${API_BASE}/sms/?api=login&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`,
@@ -83,14 +103,14 @@ export async function getPhone(
   if (options?.paragraph) url += `&paragraph=${options.paragraph}`
   if (options?.exclude) url += `&exclude=${options.exclude}`
   const res = await fetch(url)
-  return res.json()
+  return withSanitizedMsg((await res.json()) as PhoneResponse)
 }
 
 export async function specifyPhone(token: string, sid: string, phone: string): Promise<PhoneResponse> {
   const res = await fetch(
     `${API_BASE}/sms/?api=getPhone&token=${encodeURIComponent(token)}&sid=${encodeURIComponent(sid)}&phone=${encodeURIComponent(phone)}`,
   )
-  return res.json()
+  return withSanitizedMsg((await res.json()) as PhoneResponse)
 }
 
 export async function getMessage(token: string, sid: string, phone: string): Promise<MessageResponse> {
