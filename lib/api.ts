@@ -25,6 +25,8 @@ export interface PhoneResponse {
   phone: string
   sp: string
   phone_gsd: string
+  /** 非空时 H5 支持「号码检测」；形如 `{sid}-{随机}` */
+  bindCode?: string
 }
 
 export interface MessageResponse {
@@ -69,6 +71,18 @@ function withSanitizedMsg<T extends { msg?: string }>(data: T): T {
   return data
 }
 
+/** 透传上游 bindCode（顶层或 data.bindCode）；空串视为无 */
+function withBindCode(data: PhoneResponse & { bind_code?: string; data?: { bindCode?: string } }): PhoneResponse {
+  const nested =
+    data && typeof data === "object" && data.data && typeof data.data === "object"
+      ? (data.data as { bindCode?: string }).bindCode
+      : undefined
+  const raw = data.bindCode ?? data.bind_code ?? nested ?? ""
+  const bindCode = typeof raw === "string" ? raw.trim() : ""
+  data.bindCode = bindCode
+  return withSanitizedMsg(data)
+}
+
 export async function login(user: string, pass: string): Promise<LoginResponse> {
   const res = await fetch(
     `${API_BASE}/sms/?api=login&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`,
@@ -103,14 +117,14 @@ export async function getPhone(
   if (options?.paragraph) url += `&paragraph=${options.paragraph}`
   if (options?.exclude) url += `&exclude=${options.exclude}`
   const res = await fetch(url)
-  return withSanitizedMsg((await res.json()) as PhoneResponse)
+  return withBindCode((await res.json()) as PhoneResponse)
 }
 
 export async function specifyPhone(token: string, sid: string, phone: string): Promise<PhoneResponse> {
   const res = await fetch(
     `${API_BASE}/sms/?api=getPhone&token=${encodeURIComponent(token)}&sid=${encodeURIComponent(sid)}&phone=${encodeURIComponent(phone)}`,
   )
-  return withSanitizedMsg((await res.json()) as PhoneResponse)
+  return withBindCode((await res.json()) as PhoneResponse)
 }
 
 export async function getMessage(token: string, sid: string, phone: string): Promise<MessageResponse> {
@@ -140,6 +154,35 @@ export async function blacklistPhone(token: string, sid: string, phone: string):
 }
 
 export const addBlack = blacklistPhone
+
+export interface CheckPhoneResponse {
+  success: boolean
+  msg?: string
+  state?: string
+  code?: number
+  data?: { state?: string }
+}
+
+/** 号码检测（新号/旧号）；Bearer 由服务端按当前登录账号解析，与对接接口同路径 */
+export async function checkPhone(phone: string, sid: string): Promise<CheckPhoneResponse> {
+  const account = getSmsAccount()
+  const token = getVeetoToken()
+  const res = await fetch("/api/check-phone", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(account ? { "x-sms-user": account } : {}),
+      ...(token ? { "x-veeto-token": token } : {}),
+    },
+    body: JSON.stringify({
+      phone,
+      sid,
+      account: account || undefined,
+      token: token || undefined,
+    }),
+  })
+  return res.json()
+}
 
 // 项目搜索：按项目名搜索，返回项目ID + 项目名
 // 调用本站服务端接口（服务端带 Veeto Bearer 请求 api.veeto.cn）

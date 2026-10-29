@@ -13,6 +13,7 @@ import {
   addBlack,
   releaseAllPhones,
   searchProjects,
+  checkPhone,
   ISP_OPTIONS,
   ASCRIPTION_OPTIONS,
   type PhoneResponse,
@@ -47,6 +48,19 @@ export default function GetPhonePage() {
   // 复制状态
   const [phoneCopied, setPhoneCopied] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
+
+  // 号码检测（仅 bindCode 非空时可用）
+  const [checkLoading, setCheckLoading] = useState(false)
+  const [checkStateLabel, setCheckStateLabel] = useState<string | null>(null)
+
+  const hasBindCode = Boolean(phoneResult?.bindCode?.trim())
+
+  const formatCheckState = (state: string) => {
+    const s = (state || "").trim().toLowerCase()
+    if (s === "old") return "旧号"
+    if (s === "new") return "新号"
+    return state || "未知"
+  }
 
   // 复制到剪贴板
   const copyToClipboard = async (text: string, type: "phone" | "code") => {
@@ -115,6 +129,7 @@ export default function GetPhonePage() {
 
     setLoading(true)
     setCodeResult(null)
+    setCheckStateLabel(null)
     stopAutoRefresh()
 
     try {
@@ -154,6 +169,7 @@ export default function GetPhonePage() {
 
     setSpecifyLoading(true)
     setCodeResult(null)
+    setCheckStateLabel(null)
     stopAutoRefresh()
 
     try {
@@ -244,6 +260,33 @@ export default function GetPhonePage() {
     return false
   }
 
+  // 号码检测（新号/旧号）
+  const handleCheckPhone = async () => {
+    if (!phoneResult?.phone || !hasBindCode) return
+    const checkSid = String(phoneResult.sid || sid || "").trim()
+    if (!checkSid) {
+      toast.error("缺少项目ID")
+      return
+    }
+
+    setCheckLoading(true)
+    try {
+      const res = await checkPhone(phoneResult.phone, checkSid)
+      if (res.success) {
+        const raw = (res.state || res.data?.state || "").trim()
+        const label = formatCheckState(raw)
+        setCheckStateLabel(label)
+        toast.success(`检测结果：${label}`)
+      } else {
+        toast.error(res.msg || "检测失败")
+      }
+    } catch {
+      toast.error("网络错误")
+    } finally {
+      setCheckLoading(false)
+    }
+  }
+
   // 释放号码
   const handleReleasePhone = async () => {
     if (!sid || !phoneResult?.phone) return
@@ -259,6 +302,7 @@ export default function GetPhonePage() {
         // 成功后清空前端展示的号码，避免仍显示为占用中
         setPhoneResult(null)
         setCodeResult(null)
+        setCheckStateLabel(null)
         setPhoneCopied(false)
         if (specifiedPhone === releasedPhone) setSpecifiedPhone("")
         stopAutoRefresh()
@@ -284,6 +328,7 @@ export default function GetPhonePage() {
         toast.success(res.msg && /成功|拉黑/.test(res.msg) ? res.msg : "号码已拉黑")
         setPhoneResult(null)
         setCodeResult(null)
+        setCheckStateLabel(null)
         setPhoneCopied(false)
         if (specifiedPhone === blackPhone) setSpecifiedPhone("")
         stopAutoRefresh()
@@ -308,6 +353,7 @@ export default function GetPhonePage() {
         toast.success(res.msg && /成功|释放|取消/.test(res.msg) ? res.msg : "已释放全部号码")
         setPhoneResult(null)
         setCodeResult(null)
+        setCheckStateLabel(null)
         setPhoneCopied(false)
         stopAutoRefresh()
       } else {
@@ -472,6 +518,16 @@ export default function GetPhonePage() {
             >
               {phoneCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             </Button>
+            {hasBindCode && (
+              <Button
+                onClick={handleCheckPhone}
+                disabled={checkLoading}
+                className="h-12 rounded-none bg-violet-500 hover:bg-violet-600 text-white px-5"
+                title="检测新号/旧号"
+              >
+                {checkLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "检测"}
+              </Button>
+            )}
             <Button
               onClick={handleReleasePhone}
               className="h-12 rounded-none bg-teal-500 hover:bg-teal-600 text-white px-6"
@@ -510,6 +566,11 @@ export default function GetPhonePage() {
           <span>{new Date().toLocaleString("zh-CN")}</span>
           <span className="bg-card px-2 py-0.5 rounded border border-border">{phoneResult.sp}</span>
           <span className="bg-card px-2 py-0.5 rounded border border-border">{phoneResult.phone_gsd}</span>
+          {checkStateLabel && (
+            <span className="bg-violet-500/15 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded border border-violet-500/30">
+              检测：{checkStateLabel}
+            </span>
+          )}
         </div>
       )}
 
